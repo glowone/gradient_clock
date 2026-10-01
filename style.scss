@@ -10,6 +10,14 @@
 	--gray50: hsl(var(--hue) 10% 95%);
 	--gray950: hsl(var(--hue) 10% 5%);
 	--trans-dur: 0.3s;
+	// Palette sampled from the reference: cyan → violet → magenta → pink
+	--cyan: #2ec4e6;
+	--sky: #4cb6e8;
+	--periwinkle: #7f8fd8;
+	--violet: #a668c2;
+	--orchid: #c94fa8;
+	--magenta: #e0479b;
+	--pink: #f27aa6;
 	color-scheme: light dark;
 	// 320/12–3840/36
 	font-size: clamp(0.75rem, 0.6136rem + 0.6818vw, 2.25rem);
@@ -27,18 +35,52 @@ body {
 		color var(--trans-dur);
 }
 
+// Registered so it can be animated; drives the palette drifting across the digits
+@property --shift {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
+
 .clock {
+	// Palette runs cyan → pink → cyan over twice the clock's width, so it loops seamlessly
+	--period: 46.5em;
 	display: flex;
 	gap: 1.5em;
+	animation: palette-drift 30s linear infinite;
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
 
 	&__digit {
+		// Horizontal position of the digit within the clock (set per digit below)
+		--x: 0em;
 		position: relative;
 		width: 3em;
 		height: 5em;
 
 		&::before,
 		&::after {
-			background-image: linear-gradient(90deg, transparent, currentcolor);
+			background-image: linear-gradient(
+				in oklab 90deg,
+				var(--cyan),
+				var(--sky),
+				var(--periwinkle),
+				var(--violet),
+				var(--orchid),
+				var(--magenta),
+				var(--pink),
+				var(--magenta),
+				var(--orchid),
+				var(--violet),
+				var(--periwinkle),
+				var(--sky),
+				var(--cyan)
+			);
+			background-position-x: calc(-1 * (var(--x) + var(--shift) * var(--period)));
+			background-size: var(--period) 100%;
+			mask-image: linear-gradient(90deg, transparent, #000);
 			content: "";
 			display: block;
 			position: absolute;
@@ -171,6 +213,21 @@ body {
 			justify-content: flex-end;
 			gap: 0.75em;
 			width: 6.75em;
+		}
+	}
+}
+
+@keyframes palette-drift {
+	to {
+		--shift: 1;
+	}
+}
+
+// Group pitch is 6.75em width + 1.5em gap; digit pitch is 3em width + 0.75em gap
+@for $group from 1 through 3 {
+	@for $digit from 1 through 2 {
+		.clock__digit-group:nth-child(#{$group}) .clock__digit:nth-child(#{$digit}) {
+			--x: #{($group - 1) * 8.25em + ($digit - 1) * 3.75em};
 		}
 	}
 }
